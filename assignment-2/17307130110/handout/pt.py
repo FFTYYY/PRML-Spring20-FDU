@@ -17,6 +17,11 @@ class myPTRNNModel(nn.Module):
         '''
         Please finish your code here.
         '''
+        rnn_input_1 = self.embed_layer(num1.t())
+        rnn_input_2 = self.embed_layer(num2.t())
+        rnn_input = torch.cat((rnn_input_1, rnn_input_2), 2)
+        output, hn = self.rnn(rnn_input)
+        logits = self.dense(output).permute(1,0,2)
         return logits
 
 
@@ -26,17 +31,27 @@ class myAdvPTRNNModel(nn.Module):
         Please finish your code here.
         '''
         super().__init__()
+        self.embed_layer = nn.Embedding(10, 32)
+        self.rnn = nn.RNN(64, 64, 1)
+        self.dense = nn.Linear(64, 10)
 
     def forward(self, num1, num2):
         '''
         Please finish your code here.
         '''
+        rnn_input_1 = self.embed_layer(num1.t())
+        rnn_input_2 = self.embed_layer(num2.t())
+        rnn_input = torch.cat((rnn_input_1, rnn_input_2), 2)
+        output, hn = self.rnn(rnn_input)
+        logits = self.dense(output).permute(1,0,2)
         return logits
 
 
 def compute_loss(logits, labels):
+    # print("logits is ", logits.size())
+    # print("labels is ", labels.size())
     losses = nn.CrossEntropyLoss()
-    return losses(logits.view(-1, 10), labels.view(-1))
+    return losses(logits.contiguous().view(-1, 10), labels.view(-1))
 
 
 def train_one_step(model, optimizer, x, y, label):
@@ -66,7 +81,7 @@ def train(steps, model, optimizer):
 
 
 def evaluate(model):
-    datas = gen_data_batch(batch_size=2000, start=555555555, end=999999999)
+    datas = gen_data_batch(batch_size=20000, start=555555555, end=999999999)
     Nums1, Nums2, results = prepare_batch(*datas, maxlen=11)
     with torch.no_grad():
         logits = model(torch.tensor(Nums1), torch.tensor(Nums2))
@@ -76,8 +91,7 @@ def evaluate(model):
     # for o in list(zip(datas[2], res))[:20]:
     #     print(o[0], o[1], o[0]==o[1])
 
-    print('accuracy is: %g' % np.mean([o[0]==o[1] for o in zip(datas[2], res)]))
-
+    print('accuracy is: %f' % np.mean([o[0]==o[1] for o in zip(datas[2], res)]))
 
 
 def pt_main():
@@ -91,5 +105,7 @@ def pt_adv_main():
     '''
     Please finish your code here.
     '''
-    pass
-
+    model = myAdvPTRNNModel()
+    optimizer = torch.optim.Adam(params=model.parameters(), lr=0.01)
+    train(1000, model, optimizer)
+    evaluate(model)
