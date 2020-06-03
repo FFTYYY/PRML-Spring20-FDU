@@ -1,3 +1,5 @@
-from handout.main import main
+from handout.datamaker import main as make_data
+from handout.main import main as run
 
-main()
+make_data()
+run()
